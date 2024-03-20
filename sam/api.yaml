@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Parameters:
+  DeployEnv:
+    Description: Deployment environment, whether Dev, Staging or Prod
+    Type: String
+    Default: Dev
+    AllowedValues:
+      - Dev
+      - Staging
+      - Prod
+  LowerDeployEnv:
+    Description: Lowercased deployment environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+  ChiHttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Name: !Sub "${DeployEnv}ChiHttpApi"
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowHeaders:
+          - '*'
+        AllowMethods:
+          - '*'
+      Auth:
+        Authorizers:
+          ChiApiAuthorizer:
+            AuthorizerPayloadFormatVersion: "2.0"
+            EnableSimpleResponses: true
+            FunctionArn: !Sub "{{resolve:ssm:/restgo/lambda/function/authorizer/arn/${LowerDeployEnv}}}"
+            FunctionInvokeRole: !Sub "{{resolve:ssm:/restgo/iam/role/api/invoke/arn/${LowerDeployEnv}}}"
+            Identity:
+              Headers:
+                - Authorization

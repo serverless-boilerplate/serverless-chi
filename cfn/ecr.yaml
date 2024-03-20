@@ -1,0 +1,28 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  DeployEnv:
+    Description: Deployment environment, whether Dev, Staging or Prod
+    Type: String
+    Default: Dev
+    AllowedValues:
+      - Dev
+      - Staging
+      - Prod
+  LowerDeployEnv:
+    Description: Lowercased deployment environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+  RestGoRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      EmptyOnDelete: true
+      RepositoryName: !Sub "${DeployEnv}RestGoRepo"
+      Tags:
+        - Key: DeployEnv
+          Value: !Ref DeployEnv

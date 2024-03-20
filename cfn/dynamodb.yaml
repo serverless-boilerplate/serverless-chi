@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Parameters:
+  DeployEnv:
+    Description: Deployment environment, whether Dev, Staging or Prod
+    Type: String
+    Default: Dev
+    AllowedValues:
+      - Dev
+      - Staging
+      - Prod
+  LowerDeployEnv:
+    Description: Lowercased deployment environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+  UserTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${DeployEnv}User"
+      AttributeDefinitions:
+        - AttributeName: UserId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: UserId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      KinesisStreamSpecification:
+        ApproximateCreationDateTimePrecision: MICROSECOND
+        StreamArn: !Sub "{{resolve:ssm:/restgo/kinesis/stream/${LowerDeployEnv}}}"
+      

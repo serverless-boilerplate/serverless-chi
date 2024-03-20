@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+Parameters:
+  DeployEnv:
+    Description: Deployment environment, whether Dev, Staging or Prod
+    Type: String
+    Default: Dev
+    AllowedValues:
+      - Dev
+      - Staging
+      - Prod
+  LowerDeployEnv:
+    Description: Lowercased deployment environment
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+
+Resources:
+  ChiAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${DeployEnv}ChiAuthorizer"
+      Description: Go Chi authorizer function
+      Timeout: 10
+      PackageType: Image
+      Architectures:
+        - arm64
+      ImageUri: !Sub "{{resolve:ssm:/restgo/ecr/repo/uri/${LowerDeployEnv}}}"
+      ImageConfig:
+        Command:
+          - lambdas/app.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ExpressFunctionApi
+            PayloadFormatVersion: "2.0"
+      Environment:
+        Variables:
+          DEPLOY_ENV: !Ref DeployEnv
+      Tags:
+        DeployEnv: !Ref DeployEnv
+
+  ChiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${DeployEnv}ChiFunction"
+      Description: Main Go Chi App
+      Timeout: 10
+      PackageType: Image
+      Architectures:
+        - arm64
+      ImageUri: !Sub "{{resolve:ssm:/restgo/ecr/repo/uri/${LowerDeployEnv}}}"
+      ImageConfig:
+        Command:
+          - lambdas/app.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: "*"
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Sub "{{resolve:ssm:/restgo/apigw/api/id/${LowerDeployEnv}}}"
+            PayloadFormatVersion: "2.0"
+      Environment:
+        Variables:
+          DEPLOY_ENV: !Ref DeployEnv
+      Tags:
+        DeployEnv: !Ref DeployEnv
+            
